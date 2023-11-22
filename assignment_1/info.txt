@@ -1,0 +1,4 @@
+do not have to assume that it is an banach space (of n)
+
+all we need to show, that the map that we iterate is an contraction
+
