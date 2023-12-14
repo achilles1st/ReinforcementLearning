@@ -45,7 +45,7 @@ class PolicyIteration:
         v = np.zeros(self.num_states)
         # TODO: implement iterative policy evaluation
         #stef stinkt hart nach damen fürzen
-
+        #afsasfa
         return v
 
     def compute_Q_from_v(self, v, gamma=1.):
