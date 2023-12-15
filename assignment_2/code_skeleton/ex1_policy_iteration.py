@@ -65,47 +65,31 @@ class PolicyIteration:
         return v
 
     def compute_Q_from_v(self, v, gamma=1.):
-        """
-        Convert the state-value function `v` to Q values.
-        :param v: state-value function
-        :param gamma: discount factor
-        :return: Q values where Q[s, a] corresponds to the Q-value of taking action a in state s
-        """
+        Q = np.zeros((self.num_states, self.num_actions))
 
-        # Hint: You'll need the MDP dynamics stored in self.P and self.r
-        Q = np.matmul(self.P, v) + self.r
+        for s in range(self.num_states):
+            for a in range(self.num_actions):
+                # Calculate Q-value for each action in each state using the Bellman equation
+                Q[s, a] = np.sum(self.P[:, s, a] * (self.r[:, a] + gamma * np.dot(self.P[:, s, a], v)))
+
         assert Q.shape == (self.num_states, self.num_actions)
         return Q
 
     def policy_improvement(self, gamma=1.):
-        """
-        Iteratively evaluate a policy and improve it (by acting greedily w.r.t. q) until an optimal policy is found.
-        We always start with a uniform policy.
-        :param gamma: discount factor
-        :return: optimal policy, optimal v values, optimal Q values
-        """
-
-        self.policy = np.ones((self.num_states, self.num_actions)) / self.num_actions  # uniform policy
+        self.policy = np.ones((self.num_states, self.num_actions)) / self.num_actions  # Start with a uniform policy
 
         while True:
             policy_old = self.policy.copy()
             v = self.policy_evaluation(gamma)
             Q = self.compute_Q_from_v(v, gamma)
 
-            # Improve policy (i.e., create a new one) by acting greedily w.r.t. Q
-            for state in range(self.num_states):
-                # Select the action with the highest Q-value
-                best_action = np.argmax(Q[state])
+            # Improve policy by acting greedily w.r.t. Q
+            for s in range(self.num_states):
+                best_action = np.argmax(Q[s])
+                self.policy[s] = np.eye(self.num_actions)[best_action]  # Update policy to select best action
 
-                # Update the policy to select this action with probability 1
-                self.policy[state] = np.array([0 if action != best_action else 1 for action in range(self.num_actions)])
-
-                # Enforce stochasticity to avoid deterministic policies
-                self.policy[state] /= np.sum(self.policy[state])
-
-                # Check for policy convergence
-                if np.array_equal(policy_old, self.policy):
-                    break
+            if np.array_equal(policy_old, self.policy):
+                break
 
         return self.policy, v, Q
 
