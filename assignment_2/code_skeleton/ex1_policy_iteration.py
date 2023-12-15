@@ -4,6 +4,7 @@ import numpy as np
 import gymnasium as gym
 from frozen_lake_utils import plot_frozenlake_policy_iteration_results
 
+
 class PolicyIteration:
     def __init__(self, render=False):
         self.env = gym.make('FrozenLake-v1', desc=None, map_name="4x4", is_slippery=True,
@@ -43,9 +44,21 @@ class PolicyIteration:
         r_pi = np.sum(self.r * self.policy, axis=-1)
 
         v = np.zeros(self.num_states)
-        # TODO: implement iterative policy evaluation
-        #stef stinkt hart nach damen fürzen
-        #afsasfa
+        while True:
+            delta = 0
+
+            for s in range(self.num_states):
+                old_v = v[s]
+                print(s)
+                # Update v[s] using Bellman Expectation Equation for state s
+                v[s] = r_pi[s] + gamma * np.sum(P_pi[s] * v)
+                delta = max(delta, abs(old_v - v[s]))
+                print(f"Delta: {delta}")
+                print(f"Theta: {theta}")
+
+            if delta < theta:
+                break
+
         return v
 
     def compute_Q_from_v(self, v, gamma=1.):
@@ -57,9 +70,13 @@ class PolicyIteration:
         :return: Q values where Q[s, a] corresponds to the Q-value of taking action a in state s
         """
 
-        # TODO: convert v function to Q function
         # Hint: You'll need the MDP dynamics stored in self.P and self.r
-        Q = ...
+        Q = np.zeros((self.num_states, self.num_actions))
+
+        for s in range(self.num_states):
+            for a in range(self.num_actions):
+                # Calculate Q-value for each action in each state using the Bellman equation
+                Q[s, a] = np.sum(self.P[:, s, a] * (self.r[:, a] + gamma * np.dot(self.P[:, s, a], v)))
 
         assert Q.shape == (self.num_states, self.num_actions)
         return Q
@@ -73,15 +90,25 @@ class PolicyIteration:
         """
 
         self.policy = np.ones((self.num_states, self.num_actions)) / self.num_actions  # uniform policy
-
+        print(f"Gamma: {gamma}")
+        print("=============================")
         while True:
             policy_old = self.policy.copy()
             v = self.policy_evaluation(gamma)
             Q = self.compute_Q_from_v(v, gamma)
+            #  print(f"Gamma: {gamma}")
 
-            # TODO: Improve policy (i.e., create a new one) by acting greedily w.r.t. Q
-            self.policy = ...
 
+            # Improve policy by acting greedily w.r.t. Q
+            for s in range(self.num_states):
+                # Choose the action that maximizes the Q-value for each state
+                best_action = np.argmax(Q[s])
+
+                # Update the policy to select this action with probability 1
+                self.policy[s] = np.array([0 if action != best_action else 1 for action in range(self.num_actions)])
+
+                # Enforce stochasticity to avoid deterministic policies
+                self.policy[s] /= np.sum(self.policy[s])
             if np.array_equal(policy_old, self.policy):
                 break
 
