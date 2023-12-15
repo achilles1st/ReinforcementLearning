@@ -72,7 +72,6 @@ class PolicyIteration:
         :return: Q values where Q[s, a] corresponds to the Q-value of taking action a in state s
         """
 
-        # TODO: convert v function to Q function
         # Hint: You'll need the MDP dynamics stored in self.P and self.r
         Q = np.matmul(self.P, v) + self.r
         assert Q.shape == (self.num_states, self.num_actions)
