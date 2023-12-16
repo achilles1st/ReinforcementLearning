@@ -175,11 +175,11 @@ def train_test_agent(algorithm, gamma, alpha, eps, eps_decay,
 
 if __name__ == '__main__':
     eps = 1
-    alpha_list = [0.1, 0.5, 0.9]
-    eps_decay_list = [0.99, 0.995, 0.999]
+    alpha_list = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 0.9]
+    eps_decay_list = [0.99, 0.995, 0.999, 0.9995, 0.9999]
 
-    for gamma in [0.95, 1]:
-        for algo in [RLAlgorithm.SARSA, RLAlgorithm.Q_LEARNING, RLAlgorithm.EXPECTED_SARSA]:
+    for algo in [RLAlgorithm.SARSA, RLAlgorithm.Q_LEARNING, RLAlgorithm.EXPECTED_SARSA]:
+        for gamma in [0.95, 1]:
             for alpha in alpha_list:
                 for eps_decay in eps_decay_list:
                     train_test_agent(algorithm=algo, gamma=gamma, alpha=alpha, eps=eps, eps_decay=eps_decay,
