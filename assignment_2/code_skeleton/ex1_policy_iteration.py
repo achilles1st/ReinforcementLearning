@@ -37,32 +37,31 @@ class PolicyIteration:
         :return:
         """
 
-        # P_pi[s', s] = P(s' | s) when acting according to policy `self.policy`
+        # P_pi[s', s] = P(s' | s) when acting according to self.policy
         P_pi = np.sum(self.P * self.policy, axis=-1)
 
         # r_pi[s] = expected immediate reward in state s when acting according to self.policy
         r_pi = np.sum(self.r * self.policy, axis=-1)
 
-        v = np.zeros(self.num_states, self.num_actions)
-        v_old = np.copy(v)  # Initialize v_old with v
+        V = np.zeros(self.num_states)
+        while True:
+            delta = 0
+            # For each state, perform a "full backup"
+            for s in range(self.num_states):
+                old_v = V[s]
+                V[s] = r_pi[s] + gamma * np.sum(P_pi[s] * old_v)
 
-        delta = 1e9  # Set initial delta
-        while delta > theta:
+                # How much our value function changed (across any states)
+                delta = max(delta, np.abs(old_v - V[s]))
 
-            # Update the state-value function v
-            for state in range(self.num_states):
-                for action in range(self.num_actions):
-                    # Calculate the expected value of taking action a in state s
-                    value = r_pi[state] + gamma * np.dot(P_pi[state], v)
-                    v[state] += self.policy[state, action] * value
 
-            # Update delta for convergence check
-            delta = np.max(np.abs(v - v_old))
-
-            # Update v_old for next iteration
-            v_old = np.copy(v)
-
-        return v
+            # Stop evaluating once our value function change is below a threshold
+            print(delta)
+            if delta < theta:
+                break
+        print("here")
+        print(gamma)
+        return V
 
     def compute_Q_from_v(self, v, gamma=1.):
         Q = np.zeros((self.num_states, self.num_actions))
@@ -85,8 +84,10 @@ class PolicyIteration:
 
             # Improve policy by acting greedily w.r.t. Q
             for s in range(self.num_states):
-                best_action = np.argmax(Q[s])
-                self.policy[s] = np.eye(self.num_actions)[best_action]  # Update policy to select best action
+                best_actions = np.argwhere(Q[s] == np.max(Q[s])).flatten()  # Get indices of best actions
+                updated_policy = np.zeros(self.num_actions)
+                updated_policy[best_actions] = 1.0 / len(best_actions)  # Update probabilities for best actions
+                self.policy[s] = updated_policy
 
             if np.array_equal(policy_old, self.policy):
                 break
@@ -127,6 +128,7 @@ class PolicyIteration:
 
         rewards = []
         for _ in range(num_episodes):
+
             rewards.append(self.run_episode())
 
         return rewards
