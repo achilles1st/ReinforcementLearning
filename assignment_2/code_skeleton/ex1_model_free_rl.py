@@ -82,7 +82,7 @@ class ModelFreeAgent:
 
         elif self.algorithm == RLAlgorithm.EXPECTED_SARSA:
             # in order to want to use the greedy policy to select the best action without exploration, hence is_training=False
-            expected_next_q = np.dot(self.Q[next_state], self.policy(next_state, is_training=False))
+            expected_next_q = np.sum(self.Q[next_state] * self.policy(next_state, is_training=False))
             target = reward + self.gamma * expected_next_q
             self.Q[state][action] += self.alpha * (target - self.Q[state][action])
 
@@ -182,8 +182,6 @@ if __name__ == '__main__':
         for algo in [RLAlgorithm.SARSA, RLAlgorithm.Q_LEARNING, RLAlgorithm.EXPECTED_SARSA]:
             for alpha in alpha_list:
                 for eps_decay in eps_decay_list:
-                    print("eps_decay & alpha & gamma & algo")
-                    print(f'{eps_decay}  & {alpha} & {gamma} & {algo}')
                     train_test_agent(algorithm=algo, gamma=gamma, alpha=alpha, eps=eps, eps_decay=eps_decay,
                                      num_train_episodes=10_000, num_test_episodes=5_000,
                                      max_episode_length=200, savefig=False)
