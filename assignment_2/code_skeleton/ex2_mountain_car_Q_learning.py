@@ -4,6 +4,8 @@ from mountain_car_utils import plot_results_mountain_car
 from enum import Enum
 import torch
 
+
+
 def convert(x):
     return torch.tensor(x).float().unsqueeze(0)
 
@@ -44,10 +46,21 @@ class QLearningMountainCarAgent:
                 torch.nn.Linear(self.state_dimensions, self.num_actions, bias=False)
             )
         elif model_type == ModelType.NEURAL_NET:
-            # TODO: Implement a neural network with one hidden layer which consists of `self.num_hidden` neurons.
-            self.num_hidden = None
-            raise NotImplementedError('NeuralNet not implemented')
+            self.num_hidden = 128
 
+            self.Q_model = torch.nn.Sequential(
+                torch.nn.Linear(self.state_dimensions, self.num_hidden),
+                torch.nn.ReLU(),
+                torch.nn.Linear(self.num_hidden, self.num_actions)
+            )
+
+            # Weight initialization
+            def init_weights(m):
+                if isinstance(m, torch.nn.Linear):
+                    torch.nn.init.xavier_uniform_(m.weight)
+                    m.bias.data.fill_(0.01)
+
+            self.Q_model.apply(init_weights)
         self.optimizer = torch.optim.Adam(self.Q_model.parameters(), lr=self.alpha)
         self.criterion = torch.nn.MSELoss()
 
@@ -62,7 +75,14 @@ class QLearningMountainCarAgent:
         :return: An action (torch.tensor)
         """
 
-        # TODO: Implement an epsilon-greedy policy
+        state = convert(state)
+        if is_training and np.random.rand() < self.eps:
+            action = torch.tensor([[np.random.choice(self.num_actions)]], dtype=torch.int64)  # Cast to int64
+        else:
+            with torch.no_grad():
+                q_values = self.Q_model(state)
+                action = torch.argmax(q_values, dim=1, keepdim=True).long()  # Cast to int64
+        return action
         # - with probability eps return a random action
         # - otherwise find the action that maximizes Q
         # - During the testing phase, we don't need to compute the gradient!
@@ -70,29 +90,30 @@ class QLearningMountainCarAgent:
         # - Also, during testing, pick actions deterministically.
 
     def compute_loss(self, state, action, reward, next_state, next_action, done):
-        """
-        Compute the loss, defined to be the MSE between
-        Q(s,a) and the Q-Learning target y.
-
-        :param state: State we were in *before* taking the action
-        :param action: Action we have just taken
-        :param reward: Immediate reward received after taking the action
-        :param next_state: State we are in *after* taking the action
-        :param next_action: Next action we *will* take (sampled from our policy)
-        :param done: If True, the episode is over
-        """
         state = convert(state)
         next_state = convert(next_state)
-        action = action.view(1, 1)
-        next_action = next_action.view(1, 1)
-        reward = torch.tensor(reward).view(1, 1)
-        done = torch.tensor(done).int().view(1, 1)
+        action = action.long()
+        next_action = next_action.long()
+        reward = torch.tensor(reward).float().view(1, 1)  # Cast to float
+        done = torch.tensor(done).float().view(1, 1)  # Cast to float
 
-        # TODO: Compute Q(s, a) and Q(s', a') for the given state-action pairs.
-        # Detach the gradient of Q(s', a'). Why do we have to do that? Think about
-        # the effect of backpropagating through Q(s, a) and Q(s', a') at once!
+        # Compute Q(s, a)
+        q_value = self.Q_model(state).gather(1, action)
 
-        # TODO: Return the loss computed using self.criterion.
+        # Compute Q(s', a') for the next state
+        with torch.no_grad():
+            next_q_values = self.Q_model(next_state)
+            next_q_value = next_q_values.gather(1, next_action)
+
+        # Compute the target Q-value: Q-learning update rule
+        target_q = reward + self.gamma * (1 - done) * next_q_value
+
+        # Convert target_q to float tensor explicitly
+        target_q = target_q.float()
+
+        # Compute the loss using the defined criterion
+        loss = self.criterion(q_value, target_q)
+        return loss
 
     def train_step(self, state, action, reward, next_state, next_action, done):
         """
@@ -113,9 +134,12 @@ class QLearningMountainCarAgent:
         :return: Custom reward value (float)
         """
 
-        # TODO: Implement a custom reward function
-        # Right now, we just return the environment reward.
-        return env_reward
+        position = state[0]
+        velocity = state[1]
+
+        # Modify the reward based on the position and velocity of the car
+        reward = env_reward + (0.5 * (0.5 - position) + 0.05 * (0.02 - velocity ** 2))
+        return reward
 
     def run_episode(self, training, render=False):
         """
@@ -219,11 +243,11 @@ def train_test_agent(model_type, gamma, alpha, eps, eps_decay,
 
 if __name__ == '__main__':
     eps = 1.0
-    gamma = None
-    eps_decay = None
-    alpha = None
-    num_train_episodes = None
-    max_episode_length = None
+    gamma = 0.95
+    eps_decay = 0.99
+    alpha = 0.1
+    num_train_episodes = 1000
+    max_episode_length = 1000
 
     model_type = ModelType.LINEAR # Task b
     # Task c: model_type = ModelType.NEURAL_NET
