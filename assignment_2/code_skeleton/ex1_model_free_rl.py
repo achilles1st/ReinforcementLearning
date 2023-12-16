@@ -41,7 +41,13 @@ class ModelFreeAgent:
         :return: An action (int)
         """
 
-        # TODO: Implement an epsilon-greedy policy
+        if is_training and np.random.rand() < self.eps:
+            # Exploration: Choose a random action
+            return np.random.choice(self.num_actions)
+        else:
+            # Exploitation: Choose the action that maximizes Q
+            return np.argmax(self.Q[state])
+
         # - with probability self.eps return a random action
         # - otherwise find the action that maximizes self.Q
         # - when testing, do not use epsilon-greedy exploration but always return the greedy action
@@ -60,19 +66,28 @@ class ModelFreeAgent:
         """
 
         if self.algorithm == RLAlgorithm.SARSA:
-            # TODO: Implement the SARSA update.
+            next_q = self.Q[next_state][next_action] if not done else 0
+            target = reward + self.gamma * next_q
+            self.Q[state][action] += self.alpha * (target - self.Q[state][action])
+
             # - Q(s, a) = alpha * (reward + gamma * Q(s', a') - Q(s, a))
-            raise NotImplementedError(f'{self.algorithm.name} not implemented')
+
         elif self.algorithm == RLAlgorithm.Q_LEARNING:
-            # TODO: Implement the Q-Learning update.
+            max_next_q = np.max(self.Q[next_state])
+            target = reward + self.gamma * max_next_q
+            self.Q[state][action] += self.alpha * (target - self.Q[state][action])
+
             # - Q(s, a) = alpha * (reward + gamma * max_a' Q(s', a') - Q(s, a))
             # - where the max is taken over all possible actions
-            raise NotImplementedError(f'{self.algorithm.name} not implemented')
+
         elif self.algorithm == RLAlgorithm.EXPECTED_SARSA:
-            # TODO: Implement the Expected SARSA update.
+            # in order to want to use the greedy policy to select the best action without exploration, hence is_training=False
+            expected_next_q = np.dot(self.Q[next_state], self.policy(next_state, is_training=False))
+            target = reward + self.gamma * expected_next_q
+            self.Q[state][action] += self.alpha * (target - self.Q[state][action])
+
             # - Q(s, a) = alpha * (reward + gamma * E[Q(s', a')] - Q(s, a))
             # - where the expectation E[Q(s', a')] is taken wrt. actions a' of the policy (s' is given by next_state)
-            raise NotImplementedError(f'{self.algorithm.name} not implemented')
 
     def run_episode(self, training, render=False):
         """
@@ -154,16 +169,21 @@ def train_test_agent(algorithm, gamma, alpha, eps, eps_decay,
     agent.train()
     agent.test(render=render_on_test)
     plot_frozenlake_model_free_results(agent, gamma, savefig=savefig)
-    print(f'{algorithm.value} | Mean Training Reward: {np.mean(agent.train_reward)} |',
+    print(f'{algorithm.value}  Mean Training Reward: {np.mean(agent.train_reward)} |',
           f'Mean Test Reward: {np.mean(agent.test_reward)} | {gamma=}, {alpha=}, {eps=}, {eps_decay=}')
+
 
 if __name__ == '__main__':
     eps = 1
+    alpha_list = [0.1, 0.5, 0.9]
+    eps_decay_list = [0.99, 0.995, 0.999]
+
     for gamma in [0.95, 1]:
         for algo in [RLAlgorithm.SARSA, RLAlgorithm.Q_LEARNING, RLAlgorithm.EXPECTED_SARSA]:
-            # TODO: For each algorithm independently, set good values for alpha and eps_decay
-            alpha, eps_decay = None, None
-
-            train_test_agent(algorithm=algo, gamma=gamma, alpha=alpha, eps=eps, eps_decay=eps_decay,
-                             num_train_episodes=10_000, num_test_episodes=5_000,
-                             max_episode_length=200, savefig=False)
+            for alpha in alpha_list:
+                for eps_decay in eps_decay_list:
+                    print("eps_decay & alpha & gamma & algo")
+                    print(f'{eps_decay}  & {alpha} & {gamma} & {algo}')
+                    train_test_agent(algorithm=algo, gamma=gamma, alpha=alpha, eps=eps, eps_decay=eps_decay,
+                                     num_train_episodes=10_000, num_test_episodes=5_000,
+                                     max_episode_length=200, savefig=False)

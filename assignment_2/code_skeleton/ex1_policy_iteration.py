@@ -56,7 +56,6 @@ class PolicyIteration:
 
 
             # Stop evaluating once our value function change is below a threshold
-            print(delta)
             if delta < theta:
                 break
         return V
@@ -66,7 +65,7 @@ class PolicyIteration:
 
         for s in range(self.num_states):
             for a in range(self.num_actions):
-                # Calculate Q-value for each action in each state using the Bellman equation
+                # Calculate Q-value for each action in each state according to VO slides
                 Q[s, a] = np.sum(self.P[:, s, a] * v) * gamma + self.r[s, a]
 
         assert Q.shape == (self.num_states, self.num_actions)
