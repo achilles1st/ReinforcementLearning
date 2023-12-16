@@ -66,10 +66,9 @@ class ModelFreeAgent:
         """
 
         if self.algorithm == RLAlgorithm.SARSA:
-            next_q = self.Q[next_state][next_action] if not done else 0
-            target = reward + self.gamma * next_q
-            self.Q[state][action] += self.alpha * (target - self.Q[state][action])
-
+            next_q = self.Q[state, action]
+            target = reward + self.gamma * self.Q[next_state, next_action]
+            self.Q[state, action] += self.alpha * (target - next_q)
             # - Q(s, a) = alpha * (reward + gamma * Q(s', a') - Q(s, a))
 
         elif self.algorithm == RLAlgorithm.Q_LEARNING:
@@ -82,9 +81,26 @@ class ModelFreeAgent:
 
         elif self.algorithm == RLAlgorithm.EXPECTED_SARSA:
             # in order to want to use the greedy policy to select the best action without exploration, hence is_training=False
-            expected_next_q = np.sum(self.Q[next_state] * self.policy(next_state, is_training=False))
-            target = reward + self.gamma * expected_next_q
-            self.Q[state][action] += self.alpha * (target - self.Q[state][action])
+            next_q = self.Q[state, action]
+
+            expected_q = 0
+            q_max = np.max(self.Q[next_state, :])
+            greedy_actions = 0
+            for i in range(self.num_actions):
+                if self.Q[next_state][i] == q_max:
+                    greedy_actions += 1
+
+            non_greedy_action_probability = self.eps / self.num_actions
+            greedy_action_probability = ((1 - self.eps) / greedy_actions) + non_greedy_action_probability
+
+            for i in range(self.num_actions):
+                if self.Q[next_state][i] == q_max:
+                    expected_q += self.Q[next_state][i] * greedy_action_probability
+                else:
+                    expected_q += self.Q[next_state][i] * non_greedy_action_probability
+
+            target = reward + self.gamma * expected_q
+            self.Q[state, action] += self.alpha * (target - next_q)
 
             # - Q(s, a) = alpha * (reward + gamma * E[Q(s', a')] - Q(s, a))
             # - where the expectation E[Q(s', a')] is taken wrt. actions a' of the policy (s' is given by next_state)
