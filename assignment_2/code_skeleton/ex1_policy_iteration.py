@@ -49,7 +49,7 @@ class PolicyIteration:
             # For each state, perform a "full backup"
             for s in range(self.num_states):
                 old_v = V[s]
-                V[s] = r_pi[s] + gamma * np.sum(P_pi[s] * old_v)
+                V[s] = r_pi[s] + gamma * np.sum(P_pi[:, s] * V)
 
                 # How much our value function changed (across any states)
                 delta = max(delta, np.abs(old_v - V[s]))
@@ -59,8 +59,6 @@ class PolicyIteration:
             print(delta)
             if delta < theta:
                 break
-        print("here")
-        print(gamma)
         return V
 
     def compute_Q_from_v(self, v, gamma=1.):
@@ -69,7 +67,7 @@ class PolicyIteration:
         for s in range(self.num_states):
             for a in range(self.num_actions):
                 # Calculate Q-value for each action in each state using the Bellman equation
-                Q[s, a] = np.sum(self.P[:, s, a] * (self.r[:, a] + gamma * np.dot(self.P[:, s, a], v)))
+                Q[s, a] = np.sum(self.P[:, s, a] * v) * gamma + self.r[s, a]
 
         assert Q.shape == (self.num_states, self.num_actions)
         return Q
