@@ -5,24 +5,28 @@ from enum import Enum
 import torch
 
 
-
 def convert(x):
     return torch.tensor(x).float().unsqueeze(0)
+
 
 def update_metrics(metrics, episode):
     for k, v in episode.items():
         metrics[k].append(v)
+
 
 def print_metrics(it, metrics, is_training, window=50):
     reward_mean = np.mean(metrics['reward'][-window:])
     loss_mean = np.mean(metrics['loss'][-window:])
     mode = "train" if is_training else "test"
     steps_to_success = np.mean(metrics['steps_to_success'][-window:])
-    print(f"It {it:4d} | {mode:5s} | reward {reward_mean:5.1f} | loss {loss_mean:5.2f} | steps_to_success {steps_to_success}")
+    print(
+        f"It {it:4d} | {mode:5s} | reward {reward_mean:5.1f} | loss {loss_mean:5.2f} | steps_to_success {steps_to_success}")
+
 
 class ModelType(Enum):
     LINEAR = 'Linear'
     NEURAL_NET = 'Neural Network'
+
 
 class QLearningMountainCarAgent:
     def __init__(self, model_type, alpha, eps, gamma, eps_decay,
@@ -178,7 +182,6 @@ class QLearningMountainCarAgent:
         # return episode_reward
         return dict(reward=episode_reward, loss=episode_loss / t, steps_to_success=steps_to_success)
 
-
     def train(self):
         """
         Train the agent for self.max_train_iterations episodes.
@@ -236,10 +239,11 @@ def train_test_agent(model_type, gamma, alpha, eps, eps_decay,
                                       max_episode_length=max_episode_length)
     agent.train()
 
-    agent.max_episode_length = 200 # reset max episode length for testing
+    agent.max_episode_length = 200  # reset max episode length for testing
     agent.test(render=render_on_test)
 
     plot_results_mountain_car(agent, savefig=savefig)
+
 
 if __name__ == '__main__':
     eps = 1.0
@@ -249,7 +253,7 @@ if __name__ == '__main__':
     num_train_episodes = 1000
     max_episode_length = 1000
 
-    model_type = ModelType.LINEAR # Task b
+    model_type = ModelType.LINEAR  # Task b
     # Task c: model_type = ModelType.NEURAL_NET
 
     train_test_agent(model_type=model_type, gamma=gamma, alpha=alpha, eps=eps, eps_decay=eps_decay,
